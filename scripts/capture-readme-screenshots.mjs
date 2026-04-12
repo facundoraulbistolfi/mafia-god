@@ -6,6 +6,12 @@ import { chromium, devices } from '@playwright/test';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outputDir = path.resolve(__dirname, '../docs/readme');
 const baseURL = process.env.README_SCREENSHOT_BASE_URL ?? 'http://127.0.0.1:5173/';
+const README_DEMO_CAST = [
+  'Anne Protheroe',
+  'Miss Marple',
+  'Dr. Haydock',
+  'Hawes',
+];
 
 async function waitForStableFrame(page) {
   await page.waitForLoadState('networkidle');
@@ -48,7 +54,7 @@ async function revealAllRoles(page, totalPlayers) {
 
 async function captureSetup(page) {
   await page.goto(baseURL);
-  await fillSetup(page, ['Ana', 'Bruno', 'Carla', 'Diego']);
+  await fillSetup(page, README_DEMO_CAST);
   await waitForStableFrame(page);
   await page.screenshot({
     path: path.join(outputDir, 'setup-mobile.png'),
@@ -68,7 +74,7 @@ async function captureDemoModal(page) {
 }
 
 async function captureNightAndGameOver(page) {
-  await startCustomGame(page, ['Ana', 'Bruno', 'Carla', 'Diego']);
+  await startCustomGame(page, README_DEMO_CAST);
   await revealAllRoles(page, 4);
 
   await page.getByRole('button', { name: 'COMENZAR RONDA 🔦' }).click();
@@ -79,25 +85,25 @@ async function captureNightAndGameOver(page) {
     fullPage: true,
   });
 
-  await page.getByRole('button', { name: 'Diego' }).click();
+  await page.getByRole('button', { name: 'Hawes' }).click();
   await page.getByRole('button', { name: /^CONFIRMAR / }).click();
 
   await page.getByRole('button', { name: 'VER ACCIONES 🔦' }).click();
-  await page.getByRole('button', { name: 'Ana' }).click();
+  await page.getByRole('button', { name: 'Anne Protheroe' }).click();
   await page.getByRole('button', { name: /^CONFIRMAR / }).click();
   await page.waitForTimeout(3100);
 
   await page.getByRole('button', { name: 'VER ACCIONES 🔦' }).click();
-  await page.getByRole('button', { name: 'Carla' }).click();
+  await page.getByRole('button', { name: 'Dr. Haydock' }).click();
   await page.getByRole('button', { name: /^CONFIRMAR / }).click();
 
   await page.getByRole('button', { name: 'VER ACCIONES 🔦' }).click();
-  await page.getByRole('button', { name: 'Diego' }).click();
+  await page.getByRole('button', { name: 'Hawes' }).click();
   await page.getByRole('button', { name: /^CONFIRMAR / }).click();
 
   await page.getByRole('button', { name: '☀️ IR AL DÍA' }).click();
   await page.getByRole('button', { name: '⚖️ EJECUTAR' }).click();
-  await page.getByRole('button', { name: 'Bruno' }).click();
+  await page.getByRole('button', { name: 'Miss Marple' }).click();
   await page.getByRole('button', { name: '⚖️ CONFIRMAR EJECUCIÓN' }).click();
   await waitForStableFrame(page);
 
