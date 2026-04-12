@@ -1,0 +1,1057 @@
+/* ============================================================
+   MAFIA GOD — "Expediente Policial" design system
+   Monospace / police dossier aesthetic
+   ============================================================ */
+
+/* ── Reset & base ─────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+}
+
+button {
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+input {
+  font-family: var(--font);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font);
+  font-weight: 700;
+}
+
+button,
+input,
+.target-card {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(180, 165, 140, 0.7);
+  outline-offset: 2px;
+}
+
+/* ── CSS Custom Properties ────────────────────────────────── */
+
+:root {
+  /* Base palette */
+  --bg: #12100c;
+  --surface: rgba(180, 165, 140, 0.05);
+  --border: rgba(180, 165, 140, 0.12);
+  --border-strong: rgba(180, 165, 140, 0.25);
+  --text: #e8e0d0;
+  --text-muted: #8b7b65;
+  --text-label: #c8b890;
+
+  /* Night phase */
+  --night-bg-start: #0c0e16;
+  --night-bg-end: #080a12;
+  --night-accent: #8ea4cc;
+  --night-text: #e0e8f4;
+  --night-surface: rgba(140, 165, 210, 0.08);
+  --night-border: rgba(140, 165, 210, 0.15);
+  --night-border-strong: rgba(140, 165, 210, 0.35);
+
+  /* Day phase */
+  --day-bg-start: #121610;
+  --day-bg-end: #0e120a;
+  --day-accent: #90b060;
+  --day-text: #d8ecc0;
+  --day-surface: rgba(130, 170, 90, 0.12);
+  --day-border: rgba(130, 170, 90, 0.2);
+  --day-border-strong: rgba(130, 170, 90, 0.3);
+
+  /* Screen mode borders */
+  --mode-public-border: rgba(140, 165, 140, 0.5);
+  --mode-handoff-border: #c8aa64;
+  --mode-private-border: #c43030;
+  --mode-private-bg: rgba(196, 48, 48, 0.06);
+
+  /* Status colors */
+  --alive: #a8c4a8;
+  --dead: #c98787;
+  --danger: #c43030;
+
+  /* Typography */
+  --font: 'Courier New', 'Courier', monospace;
+
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Utilities ─────────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Shell / Layout ───────────────────────────────────────── */
+
+/* Main centered container */
+.app-shell {
+  width: min(100%, 640px);
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+  min-height: 100svh;
+}
+
+/* Sticky top header rail */
+.top-rail {
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(18, 16, 12, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+/* Logo / brand text */
+.brand-mark {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-label);
+  letter-spacing: 1px;
+  font-family: var(--font);
+}
+
+/* Right-side badge row in top rail */
+.rail-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Individual pill badges in the rail */
+.rail-badge {
+  padding: 3px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-label);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Rules / help button in top rail */
+.rules-button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: var(--font);
+}
+
+/* ── Scene (main content card) ────────────────────────────── */
+
+.scene {
+  border-radius: 12px;
+  background: rgba(24, 20, 16, 0.98);
+  border: 1px solid var(--border);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: scene-enter 300ms ease forwards;
+  position: relative;
+}
+
+/* Scene fills viewport height */
+.scene--fit {
+  min-height: calc(100svh - 100px);
+}
+
+/* Night phase scene */
+.scene[data-phase='night'] {
+  background: linear-gradient(180deg, var(--night-bg-start), var(--night-bg-end));
+  border-color: var(--night-border);
+}
+
+/* Day phase scene */
+.scene[data-phase='day'] {
+  background: linear-gradient(180deg, var(--day-bg-start), var(--day-bg-end));
+  border-color: var(--day-border);
+}
+
+/* Screen mode — public (all players see this) */
+.scene[data-screen-mode='public'] {
+  border-left: 4px solid var(--mode-public-border);
+}
+
+/* Screen mode — handoff (pass device) */
+.scene[data-screen-mode='handoff'] {
+  border-left: 4px solid var(--mode-handoff-border);
+}
+
+/* Screen mode — private (one player sees secret role) */
+.scene[data-screen-mode='private'] {
+  border-left: 4px solid var(--mode-private-border);
+  background-color: var(--mode-private-bg); /* additive with night/day gradient */
+}
+
+/* Scene header block */
+.scene-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Overline / kicker label */
+.scene-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+/* Main scene heading wrapper */
+.scene-heading {
+  margin: 0;
+}
+
+/* h2 inside .scene-heading */
+.scene-heading h2 {
+  font-size: 26px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin: 0;
+  font-family: var(--font);
+}
+
+/* Subtitle / description below heading */
+.scene-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Small inline badge within scene head */
+.scene-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Scene body scrolls/grows */
+.scene-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Scene footer — sticks to bottom via margin-top: auto */
+.scene-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+
+/* Primary CTA button */
+.button-primary {
+  width: 100%;
+  padding: 14px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 160ms, border-color 160ms, transform 160ms;
+}
+
+.button-primary:hover {
+  transform: translateY(-1px);
+  border-color: rgba(180, 165, 140, 0.4);
+}
+
+.button-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Secondary / ghost button */
+.button-secondary {
+  width: 100%;
+  padding: 14px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 160ms, border-color 160ms, transform 160ms;
+}
+
+.button-secondary:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+
+.button-secondary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Side-by-side button row */
+.button-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* Square icon-only button */
+.icon-button {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  font-family: var(--font);
+}
+
+.icon-button:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* ── Setup — Player list ──────────────────────────────────── */
+
+/* Status indicator strip */
+.setup-status {
+  padding: 10px 14px;
+  border-left: 3px solid;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.setup-status--ok {
+  border-color: var(--alive);
+  background: rgba(168, 196, 168, 0.06);
+  color: var(--alive);
+}
+
+.setup-status--warning {
+  border-color: #c8a060;
+  background: rgba(200, 160, 96, 0.06);
+  color: #c8a060;
+}
+
+.setup-status--alert {
+  border-color: var(--danger);
+  background: rgba(196, 48, 48, 0.06);
+  color: var(--warning-color, #e08080);
+}
+
+/* Vertical list of player rows */
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Single player row */
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px 10px;
+}
+
+/* Drag handle (reorder) */
+.player-drag-handle {
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: grab;
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* Row number */
+.player-number {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 22px;
+}
+
+/* Player name text input */
+.player-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+}
+
+.player-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Error state for empty required input */
+.player-input.is-empty {
+  border-bottom: 1px solid var(--danger);
+}
+
+/* "Add player" row — dashed border */
+.player-row--empty {
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+/* ── Setup — Role steppers ────────────────────────────────── */
+
+/* Role count stepper row */
+.role-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+/* Role name + emoji */
+.role-stepper__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* +/- controls row */
+.role-stepper__controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Current count display */
+.role-stepper__count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Role preview — 2-column grid */
+.role-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Single role preview card */
+.role-preview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-preview-card__emoji {
+  font-size: 24px;
+}
+
+.role-preview-card__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.role-preview-card__desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Night / Reveal panels ────────────────────────────────── */
+
+/* Centered spotlight (e.g., whose turn is it) */
+.spotlight-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Handoff variant — golden border */
+.spotlight-card--handoff {
+  border-color: var(--mode-handoff-border);
+  background: rgba(200, 170, 100, 0.06);
+}
+
+/* Large player name inside spotlight */
+.spotlight-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--mode-handoff-border);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Generic info panel card */
+.panel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Private / secret variant of panel */
+.panel-card--private {
+  background: var(--mode-private-bg);
+  border-color: var(--mode-private-border);
+}
+
+/* Small label above a panel value */
+.panel-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Main value inside a panel */
+.panel-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Vertical stack of panel cards */
+.panel-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Two-column variant — activates at 360px */
+@media (min-width: 360px) {
+  .panel-grid--two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+/* ── Target list (night actions) ──────────────────────────── */
+
+/* Vertical list of selectable targets */
+.target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Single target option */
+.target-card {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text);
+  transition: border-color 160ms, background 160ms;
+  text-align: left;
+  width: 100%;
+  font-family: var(--font);
+}
+
+.target-card:hover {
+  border-color: var(--border-strong);
+  background: rgba(180, 165, 140, 0.08);
+}
+
+/* Selected target — uses night accent by default */
+.target-card.is-selected {
+  border: 2px solid var(--night-border-strong);
+  background: var(--night-surface);
+  color: var(--night-text);
+  font-weight: 600;
+}
+
+/* Day phase override for selected target */
+.scene[data-phase='day'] .target-card.is-selected {
+  border-color: var(--day-border-strong);
+  background: var(--day-surface);
+  color: var(--day-text);
+}
+
+/* ── Badges / Pills ───────────────────────────────────────── */
+
+/* Red "CONFIDENTIAL" stamp */
+.confidential-stamp {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 2px solid var(--danger);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #e04040;
+}
+
+/* Dossier folder tab — positioned relative to .scene */
+.folder-tab {
+  position: absolute;
+  top: 0;
+  right: 16px;
+  background: rgba(180, 165, 140, 0.12);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 0 0 5px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+/* Generic status pill */
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.meta-pill--safe {
+  background: rgba(168, 196, 168, 0.12);
+  color: var(--alive);
+}
+
+.meta-pill--alert {
+  background: rgba(196, 48, 48, 0.12);
+  color: var(--danger);
+}
+
+.meta-pill--ghost {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+/* Alive / dead inline badges */
+.alive-badge {
+  font-size: 11px;
+  color: var(--alive);
+  font-weight: 600;
+}
+
+.dead-badge {
+  font-size: 11px;
+  color: var(--dead);
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+/* ── Briefing carousel ────────────────────────────────────── */
+
+/* Outer wrapper for multi-slide briefing */
+.briefing-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Individual slide */
+.briefing-slide {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.briefing-slide__emoji {
+  font-size: 40px;
+}
+
+.briefing-slide__title {
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+
+.briefing-slide__body {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+/* Dot indicators */
+.briefing-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.briefing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition: background 200ms;
+}
+
+.briefing-dot.is-active {
+  background: var(--text-label);
+}
+
+/* ── Dialog ───────────────────────────────────────────────── */
+
+/* Full-screen frosted backdrop */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(5, 6, 8, 0.78);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: overlay-enter 200ms ease;
+}
+
+/* Dialog content panel */
+.dialog-panel {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(20, 16, 14, 0.98);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  animation: dialog-enter 250ms 40ms both ease;
+}
+
+/* X close button inside dialog */
+.dialog-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-family: var(--font);
+}
+
+.dialog-close-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* ── Inspection overlay ───────────────────────────────────── */
+
+/* Full-screen overlay for role reveal */
+.inspection-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(5, 6, 8, 0.82);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlay-enter 200ms ease;
+}
+
+/* Card shown in inspection overlay */
+.inspection-card {
+  background: rgba(20, 16, 14, 0.98);
+  border: 1px solid var(--mode-private-border);
+  border-radius: 10px;
+  padding: 32px 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: dialog-enter 300ms 80ms both ease;
+}
+
+/* ── Result banner ────────────────────────────────────────── */
+
+/* End-of-round winner announcement */
+.result-banner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-banner__emoji {
+  font-size: 48px;
+}
+
+.result-banner__text {
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text);
+  opacity: 0;
+}
+
+.result-banner__text.revealed {
+  animation: reveal-text 600ms ease forwards;
+}
+
+/* ── Game over / History ──────────────────────────────────── */
+
+/* Round history container */
+.history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Individual round block */
+.history-round {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+}
+
+/* Single timeline event */
+.timeline-entry {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-entry:last-child {
+  border-bottom: none;
+}
+
+/* ── Demo / preview grid ──────────────────────────────────── */
+
+.demo-cast-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.demo-cast-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Animation keyframes ──────────────────────────────────── */
+
+@keyframes scene-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal-text {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Animation utility classes ────────────────────────────── */
+
+.animate-fade-in-up {
+  animation: fade-in-up 500ms ease both;
+}
+
+.animate-fade-in-up--delay-1 {
+  animation-delay: 200ms;
+}
+
+.animate-fade-in-up--delay-2 {
+  animation-delay: 360ms;
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Desktop breakpoint (720px+) ──────────────────────────── */
+
+@media (min-width: 720px) {
+  .scene {
+    padding: 36px 32px;
+  }
+
+  .panel-grid--two-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .button-row {
+    flex-direction: row;
+  }
+
+  .scene-footer .button-row {
+    flex-direction: row;
+  }
+}
