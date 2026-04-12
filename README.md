@@ -16,6 +16,17 @@
   <img alt="Platform" src="https://img.shields.io/badge/mobile%20first-single%20device-90b060">
 </p>
 
+<p align="center">
+  <img src="./docs/readme/setup-mobile.png" alt="Pantalla de configuracion mobile" width="23%">
+  <img src="./docs/readme/demo-briefing-mobile.png" alt="Modal de demo en mobile" width="23%">
+  <img src="./docs/readme/night-private-mobile.png" alt="Pantalla privada de noche en mobile" width="23%">
+  <img src="./docs/readme/game-over-mobile.png" alt="Pantalla final con historial en mobile" width="23%">
+</p>
+
+<p align="center">
+  <sub>Capturas reales de <code>v0.0.1</code> en flujo mobile.</sub>
+</p>
+
 ---
 
 ## Que es esto
@@ -112,9 +123,16 @@ la URL que imprima Vite en terminal, normalmente `http://localhost:5173/`
 | `npm run dev` | levanta Vite en modo desarrollo |
 | `npm run build` | valida TypeScript y genera `dist/` |
 | `npm run preview` | sirve el build de produccion localmente |
+| `npm run readme:screenshots` | regenera las capturas usadas por este README |
 | `npm run test:unit` | corre tests con Vitest |
 | `npm run test:e2e` | corre tests end-to-end con Playwright |
 | `npm test` | corre unit + e2e |
+
+Si Vite levanta en otro puerto, las capturas del README se pueden regenerar con:
+
+```bash
+README_SCREENSHOT_BASE_URL=http://127.0.0.1:4174/ npm run readme:screenshots
+```
 
 ## Stack
 
