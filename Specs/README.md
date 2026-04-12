@@ -8,7 +8,8 @@ El repositorio se desarrolla siempre de forma `spec driven`: primero se define o
 - `Specs/` es la fuente de verdad funcional del proyecto.
 - `product-scope.md` es transversal y no versionado.
 - Cada version funcional vive en su propia carpeta `Specs/<version>/`.
-- La version activa actual es [0.0.1](0.0.1/README.md).
+- La version cerrada actual es [0.0.1](0.0.1/README.md).
+- La proxima iteracion funcional debe abrir una nueva carpeta de version dentro de `Specs/`.
 - Cada version debe declarar su estado: `wip` o `closed`.
 - Una version `wip` puede seguir refinandose dentro de su carpeta.
 - Una version `closed` no recibe cambios de comportamiento: esos cambios van a una nueva carpeta de version.

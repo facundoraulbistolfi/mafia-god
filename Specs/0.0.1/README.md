@@ -43,9 +43,9 @@ Permitir jugar una partida completa de Mafia usando un unico celular como soport
 
 ## Estado de la version
 
-- Estado actual: `wip`.
-- Mientras `0.0.1` siga en `wip`, puede recibir cambios funcionales acordados dentro de esta carpeta.
-- Cuando `0.0.1` pase a `closed`, cualquier cambio de comportamiento debera abrir una nueva carpeta de version.
+- Estado actual: `closed`.
+- `0.0.1` queda congelada como la primera version funcional publicada de `mafia-god`.
+- Cualquier cambio de comportamiento posterior debera abrir una nueva carpeta de version dentro de `Specs/`.
 
 ## Checklist minima de validacion
 
