@@ -17,7 +17,8 @@ concurrency:
 jobs:
   validate:
     name: build-test-e2e
-    runs-on: ubuntu-latest
+    # Playwright 1.43.x still expects Jammy package names when using --with-deps.
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
 
     steps:
