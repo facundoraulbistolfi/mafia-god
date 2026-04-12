@@ -9,8 +9,14 @@
 </p>
 
 <p align="center">
+  <a href="https://facundoraulbistolfi.github.io/mafia-god/">
+    <img alt="Jugar mafia-god" src="https://img.shields.io/badge/JUGAR-mafia--god-90b060?style=for-the-badge&logo=githubpages&logoColor=12100c&labelColor=d8ecc0">
+  </a>
+</p>
+
+<p align="center">
   <a href="https://github.com/facundoraulbistolfi/mafia-god/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/facundoraulbistolfi/mafia-god/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/facundoraulbistolfi/mafia-god/actions/workflows/deploy-pages.yml"><img alt="Deploy to GitHub Pages" src="https://github.com/facundoraulbistolfi/mafia-god/actions/workflows/deploy-pages.yml/badge.svg"></a>
+  <a href="https://facundoraulbistolfi.github.io/mafia-god/"><img alt="GitHub Pages" src="https://img.shields.io/badge/github%20pages-live-c8aa64?style=flat-square&logo=githubpages&logoColor=12100c"></a>
   <img alt="Version" src="https://img.shields.io/badge/version-v0.0.1-c8aa64">
   <img alt="Specs" src="https://img.shields.io/badge/spec%20driven-yes-8ea4cc">
   <img alt="Platform" src="https://img.shields.io/badge/mobile%20first-single%20device-90b060">
