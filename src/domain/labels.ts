@@ -57,6 +57,41 @@ export const PHASE_EMOJI: Record<GamePhase, string> = {
   'game-over': '🏆',
 };
 
+// Death/resolution flavor texts — selected randomly each night
+export const DEATH_FLAVOR_TEXTS: string[] = [
+  'aparecio con 27 punaladas en la espalda y una nota de suicidio.',
+  'se tropezo con una bala.',
+  'ya esta tocando el arpa, y no en una orquesta.',
+  'quedo fuera de servicio antes del desayuno.',
+  'recibio una auditoria nocturna demasiado definitiva.',
+  'perdio la conexion con el servidor de la vida.',
+  'se cruzo con la version full contact de la mala suerte.',
+  'paso a ser recuerdo con una eficiencia admirable.',
+  'termino en la carpeta de casos cerrados.',
+  'descubrio demasiado tarde que la noche venia con contenido sensible.',
+];
+
+export const NO_DEATH_FLAVOR_TEXTS: string[] = [
+  'Nadie cayo. La mafia tuvo peor punteria que un stormtrooper.',
+  'Todos siguen vivos. Sospechoso, pero vivos.',
+  'La noche termino sin bajas y con mucho chamuyo pendiente.',
+  'Nadie paso a mejor vida. Todavia.',
+  'La mafia no concreto nada. Capaz habia paro nocturno.',
+  'El pueblo amanecio entero, para desgracia de los chismosos.',
+  'No hubo victimas. Al menos no oficialmente.',
+  'La madrugada no se llevo a nadie. Increible, pero legal.',
+  'Todos llegaron al amanecer con pulso y ganas de acusar.',
+  'Nadie murio. La tragedia prefirio mirar desde la tribuna.',
+];
+
+export const TOWN_GATHERING_TEXTS: string[] = [
+  'El pueblo se reúne en la plaza central para deliberar.',
+  'Los vecinos se juntan frente a la municipalidad.',
+  'Todos se encuentran en la taberna para discutir lo ocurrido.',
+  'La comunidad se congrega al pie de la iglesia.',
+  'El pueblo entero se reúne junto a la fuente principal.',
+];
+
 // Briefing slide content — 4 slides for the pre-game tutorial
 export const BRIEFING_SLIDES: Array<{
   emoji: string;

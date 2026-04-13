@@ -63,6 +63,8 @@ export interface RoundRecord {
   nightDeathPlayerId: string | null;
   publicMessage: string;
   dayExecutionPlayerId: string | null;
+  deathFlavorIndex: number;
+  gatheringFlavorIndex: number;
 }
 
 export interface GameResult {

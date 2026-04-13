@@ -8,8 +8,11 @@ import {
 } from 'react';
 import { getRuntimeRng } from '../app/runtime-rng';
 import {
+  clearSavedPlayers,
   clearSavedState,
+  loadSavedPlayers,
   loadSavedState,
+  savePlayers,
   saveState,
   shouldPersistState,
 } from '../app/storage';
@@ -25,6 +28,7 @@ import {
   getAllowedTargets,
   getInspectionResult,
   getNightActionSummary,
+  getNightTargetSelectionCounts,
   getPlayerById,
   getPlayerName,
   suggestRoleCounts,
@@ -38,6 +42,7 @@ import {
   ROLE_EMOJI,
   ROLE_HELP_TEXT,
   ROLE_LABELS,
+  TOWN_GATHERING_TEXTS,
   WINNER_LABELS,
 } from '../domain/labels';
 import { DEMO_CAST } from '../domain/demo';
@@ -75,7 +80,7 @@ const PHASE_META: Record<RailPhase, { label: string; badgeTone: string }> = {
 };
 
 const MODE_META: Record<ScreenMode, { label: string; badgeTone: string }> = {
-  public: { label: '🔓 Publico', badgeTone: 'public' },
+  public: { label: '👁 Publico', badgeTone: 'public' },
   handoff: { label: '📱 Pase', badgeTone: 'handoff' },
   private: { label: '🔒 Privado', badgeTone: 'private' },
 };
@@ -90,12 +95,12 @@ const SCENE_COPY = {
     players: {
       kicker: '📋 NUEVO CASO',
       title: 'Sospechosos',
-      subtitle: 'Cargá nombres y orden de mesa para repartir roles.',
+      subtitle: 'Cargá la mesa y dejá claro el orden antes de repartir roles.',
     },
     roles: {
       kicker: '📋 ROLES',
       title: 'Roles',
-      subtitle: 'Revisá el reparto y larguen la partida.',
+      subtitle: 'Ajustá el reparto sin perder de vista la mesa cargada.',
     },
     demo: {
       label: '🎭 DEMO',
@@ -135,14 +140,14 @@ const SCENE_COPY = {
     },
   },
   resolution: {
-    kicker: '⚡ RESOLUCIÓN',
-    title: 'Resultado de la ronda',
-    subtitle: 'Solo se muestra el desenlace público.',
+    kicker: '☀️ SE HACE DE DÍA',
+    title: 'Amanecer',
+    subtitle: '',
   },
   day: {
-    kicker: '☀️ DÍA',
-    title: 'DELIBERACIÓN',
-    subtitle: '🗣️ Hablen, acusen, defiendan...',
+    kicker: '⚖️ EJECUCIÓN',
+    title: 'EJECUCIÓN',
+    subtitle: 'El pueblo decide.',
     executeTitle: 'Elegí a quién ejecutar',
   },
   gameOver: {
@@ -161,6 +166,8 @@ interface RailContext {
   mode: ScreenMode;
   round: number | null;
 }
+
+const INSPECTION_OVERLAY_DURATION_MS = 3000;
 
 export function App() {
   const [bootstrap] = useState<SessionBootstrap>(() => {
@@ -183,7 +190,7 @@ export function App() {
 
     const timeout = window.setTimeout(() => {
       setInspectionOverlay(null);
-    }, 3000);
+    }, INSPECTION_OVERLAY_DURATION_MS);
 
     return () => window.clearTimeout(timeout);
   }, [inspectionOverlay]);
@@ -195,6 +202,12 @@ export function App() {
       clearSavedState();
     }
   }, [state]);
+
+  useEffect(() => {
+    if (state.phase === 'briefing' && state.setup.playerCount > 0) {
+      savePlayers(state.setup.playerNames.slice(0, state.setup.playerCount));
+    }
+  }, [state.phase]);
 
   const setupValidation = validateSetup(state.setup);
   const railContext = getRailContext(state, resumeRequired);
@@ -211,7 +224,7 @@ export function App() {
     setResumeRequired(false);
     setInspectionOverlay(null);
     clearSavedState();
-    send({ type: 'game/reset' });
+    send({ type: 'game/reset', savedPlayers: loadSavedPlayers() });
   };
 
   const handleStartGame = () => {
@@ -317,14 +330,24 @@ export function App() {
             onSubmitNightAction={handleSubmitNightAction}
             onAdvanceHandoff={() => send({ type: 'night/advance-handoff' })}
             onContinueFromResolution={() => send({ type: 'resolution/continue' })}
+            onSkipResolutionToNight={() => send({ type: 'resolution/skip-to-night' })}
             onExecuteDayPlayer={(playerId) => send({ type: 'day/execute', playerId })}
             onPassDay={() => send({ type: 'day/pass' })}
             onResetGame={handleStartFresh}
+            onClearAllPlayers={() => {
+              send({ type: 'setup/clear-all-players' });
+              clearSavedPlayers();
+            }}
           />
         )}
       </main>
 
-      {inspectionOverlay ? <InspectionOverlay message={inspectionOverlay} /> : null}
+      {inspectionOverlay ? (
+        <InspectionOverlay
+          durationMs={INSPECTION_OVERLAY_DURATION_MS}
+          message={inspectionOverlay}
+        />
+      ) : null}
       {isRulesModalOpen ? <RulesModal onClose={() => setIsRulesModalOpen(false)} /> : null}
     </div>
   );
@@ -350,9 +373,11 @@ interface CurrentScreenProps {
   onSubmitNightAction: (targetId: string) => void;
   onAdvanceHandoff: () => void;
   onContinueFromResolution: () => void;
+  onSkipResolutionToNight: () => void;
   onExecuteDayPlayer: (playerId: string) => void;
   onPassDay: () => void;
   onResetGame: () => void;
+  onClearAllPlayers: () => void;
 }
 
 function CurrentScreen({
@@ -375,9 +400,11 @@ function CurrentScreen({
   onSubmitNightAction,
   onAdvanceHandoff,
   onContinueFromResolution,
+  onSkipResolutionToNight,
   onExecuteDayPlayer,
   onPassDay,
   onResetGame,
+  onClearAllPlayers,
 }: CurrentScreenProps) {
   switch (state.phase) {
     case 'setup':
@@ -396,6 +423,7 @@ function CurrentScreen({
           onSetRoleCount={onSetRoleCount}
           onStartDemo={onStartDemo}
           onStartGame={onStartGame}
+          onClearAllPlayers={onClearAllPlayers}
         />
       );
 
@@ -447,7 +475,8 @@ function CurrentScreen({
       return (
         <ResolutionScreen
           roundRecord={roundRecord}
-          onContinue={onContinueFromResolution}
+          onGoToExecution={onContinueFromResolution}
+          onSkipToNight={onSkipResolutionToNight}
         />
       );
     }
@@ -522,6 +551,16 @@ function BriefingScreen({ slide, onNext, onSkip }: BriefingScreenProps) {
       mode="public"
       kicker="📖 BRIEFING"
       title="Instrucciones"
+      footer={
+        <div className="action-dock">
+          <PrimaryButton onClick={onNext}>
+            {isLastSlide ? 'COMENZAR →' : 'SIGUIENTE →'}
+          </PrimaryButton>
+          {!isLastSlide ? (
+            <GhostButton onClick={onSkip}>SALTAR</GhostButton>
+          ) : null}
+        </div>
+      }
     >
       <div className="briefing-carousel">
         <div className="briefing-slide">
@@ -539,15 +578,6 @@ function BriefingScreen({ slide, onNext, onSkip }: BriefingScreenProps) {
           ))}
         </div>
       </div>
-
-      <div className="action-dock">
-        <PrimaryButton onClick={onNext}>
-          {isLastSlide ? 'COMENZAR →' : 'SIGUIENTE →'}
-        </PrimaryButton>
-        {!isLastSlide ? (
-          <SecondaryButton onClick={onSkip}>SALTAR</SecondaryButton>
-        ) : null}
-      </div>
     </SceneFrame>
   );
 }
@@ -558,7 +588,7 @@ interface RulesModalProps {
 
 function RulesModal({ onClose }: RulesModalProps) {
   return (
-    <Dialog onClose={onClose}>
+    <Dialog>
       <div className="dialog-heading">
         <h3>📖 Reglas del juego</h3>
       </div>
@@ -605,7 +635,7 @@ function ResumePrompt({ savedPhase, onContinue, onReset }: ResumePromptProps) {
       footer={
         <div className="action-dock">
           <PrimaryButton onClick={onContinue}>CONTINUAR CASO</PrimaryButton>
-          <SecondaryButton onClick={onReset}>NUEVO CASO</SecondaryButton>
+          <GhostButton onClick={onReset}>NUEVO CASO</GhostButton>
         </div>
       }
     >
@@ -632,6 +662,7 @@ interface SetupScreenProps {
   onSetRoleCount: (role: Role, value: number) => void;
   onStartDemo: () => void;
   onStartGame: () => void;
+  onClearAllPlayers: () => void;
 }
 
 function SetupScreen({
@@ -648,8 +679,10 @@ function SetupScreen({
   onSetRoleCount,
   onStartDemo,
   onStartGame,
+  onClearAllPlayers,
 }: SetupScreenProps) {
   const [isDemoDialogOpen, setIsDemoDialogOpen] = useState(false);
+  const [isOrderSummaryOpen, setIsOrderSummaryOpen] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const lastInputRef = useRef<HTMLInputElement>(null);
   const prevPlayerCountRef = useRef(setup.playerCount);
@@ -659,10 +692,10 @@ function SetupScreen({
     setup.roleCounts.police +
     setup.roleCounts.doctor +
     setup.roleCounts.citizen;
+  const canClearPlayers = !(setup.playerCount <= 1 && !setup.playerNames[0]);
   const canAdvanceSetup =
     !validation.playerCountError && Object.keys(validation.playerNameErrors).length === 0;
   const playerSetupStatus = getPlayerSetupStatus(setup, validation);
-  const roleSetupStatus = getRoleSetupStatus(setup, validation, totalRoles, suggestedCounts);
   useEffect(() => {
     if (setup.playerCount > prevPlayerCountRef.current) {
       lastInputRef.current?.focus();
@@ -672,6 +705,12 @@ function SetupScreen({
     }
     prevPlayerCountRef.current = setup.playerCount;
   }, [setup.playerCount]);
+
+  useEffect(() => {
+    if (setupStep === 'players') {
+      setIsOrderSummaryOpen(false);
+    }
+  }, [setupStep]);
 
   const openDemoDialog = () => setIsDemoDialogOpen(true);
   const closeDemoDialog = () => setIsDemoDialogOpen(false);
@@ -696,39 +735,61 @@ function SetupScreen({
             />
           }
           footer={
-            <div className="action-dock action-dock--solo">
+            <div className="action-dock action-dock--setup">
               <PrimaryButton onClick={onAdvanceSetup} disabled={!canAdvanceSetup}>
                 Siguiente
               </PrimaryButton>
+              <SecondaryButton
+                className="button-secondary--compact setup-footer-demo"
+                onClick={openDemoDialog}
+              >
+                {SCENE_COPY.setup.demo.label}
+              </SecondaryButton>
             </div>
           }
         >
-          <SetupSceneStatus status={playerSetupStatus} />
+          <SetupSceneStatus
+            status={playerSetupStatus}
+            meta={
+              <>
+                <MetaPill label={`${setup.playerCount}/20`} tone="ghost" />
+                <MetaPill
+                  label="Minimo 4"
+                  tone={setup.playerCount >= 4 ? 'safe' : 'ghost'}
+                />
+              </>
+            }
+          />
 
-          <section className="setup-sheet">
-            <div className="section-head">
+          <section className="panel-card panel-card--public setup-sheet">
+            <div className="section-head setup-sheet__head">
               <div>
                 <span className="section-label">Orden de mesa</span>
                 <h3>Jugadores</h3>
               </div>
-              <MetaPill
-                label={`${setup.playerCount}/20`}
-                tone={setup.playerCount >= 4 ? 'safe' : 'ghost'}
-              />
+              <div className="section-head-actions">
+                <GhostButton
+                  className="setup-clear-button"
+                  onClick={onClearAllPlayers}
+                  disabled={!canClearPlayers}
+                >
+                  Borrar todo
+                </GhostButton>
+              </div>
             </div>
 
             {validation.playerCountError ? (
-              <p className="field-error">{validation.playerCountError}</p>
+              <p className="field-error field-error--setup">{validation.playerCountError}</p>
             ) : (
-              <p className="field-hint">
-                Este orden define revelacion, pases de telefono y turnos nocturnos.
+              <p className="field-hint field-hint--setup">
+                Este orden gobierna la revelacion, los pases de telefono y los turnos nocturnos.
               </p>
             )}
 
-            <div className="player-list">
+            <div className="player-list" role="list" aria-label="Jugadores cargados">
               {setup.playerNames.map((playerName, index) => (
-                <div
-                  className="player-row"
+                <article
+                  className={`player-row${validation.playerNameErrors[index] ? ' player-row--invalid' : ''}${dragIndex === index ? ' player-row--dragging' : ''}`}
                   key={`setup-player-${index + 1}`}
                   draggable={true}
                   onDragStart={() => setDragIndex(index)}
@@ -741,62 +802,74 @@ function SetupScreen({
                     }
                   }}
                 >
-                  <span className="player-drag-handle" aria-hidden="true">≡</span>
-                  <div className="player-order">
-                    <span>{index + 1}</span>
+                  <div className="player-row-main">
+                    <div className="player-order">
+                      <span className="player-order__number">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="player-order__label">Mesa</span>
+                    </div>
+                    <div className="player-field">
+                      <label className="sr-only" htmlFor={`player-name-${index}`}>
+                        Nombre del jugador {index + 1}
+                      </label>
+                      <input
+                        ref={index === setup.playerNames.length - 1 ? lastInputRef : undefined}
+                        id={`player-name-${index}`}
+                        className="text-input"
+                        value={playerName}
+                        placeholder={`Nombre del jugador ${index + 1}`}
+                        onChange={(event) => onSetPlayerName(index, event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key !== 'Enter' || !playerName.trim()) return;
+                          event.preventDefault();
+                          const nextInput = document.getElementById(
+                            `player-name-${index + 1}`,
+                          ) as HTMLInputElement | null;
+                          if (nextInput) {
+                            nextInput.focus();
+                          } else if (setup.playerCount < 20) {
+                            onAddPlayer();
+                          } else if (canAdvanceSetup) {
+                            onAdvanceSetup();
+                          }
+                        }}
+                      />
+                      {validation.playerNameErrors[index] ? (
+                        <p className="field-error field-error--setup">
+                          {validation.playerNameErrors[index]}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="player-drag-handle" aria-hidden="true" title="Tambien podes arrastrar esta fila">
+                      ≡
+                    </span>
                   </div>
-                  <div className="player-field">
-                    <label className="sr-only" htmlFor={`player-name-${index}`}>
-                      Nombre del jugador {index + 1}
-                    </label>
-                    <input
-                      ref={index === setup.playerNames.length - 1 ? lastInputRef : undefined}
-                      id={`player-name-${index}`}
-                      className="text-input"
-                      value={playerName}
-                      placeholder={`Jugador ${index + 1}`}
-                      onChange={(event) => onSetPlayerName(index, event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter' || !playerName.trim()) return;
-                        event.preventDefault();
-                        const nextInput = document.getElementById(`player-name-${index + 1}`) as HTMLInputElement | null;
-                        if (nextInput) {
-                          nextInput.focus();
-                        } else if (setup.playerCount < 20) {
-                          onAddPlayer();
-                        } else if (canAdvanceSetup) {
-                          onAdvanceSetup();
-                        }
-                      }}
-                    />
-                    {validation.playerNameErrors[index] ? (
-                      <p className="field-error">{validation.playerNameErrors[index]}</p>
-                    ) : null}
-                  </div>
-                  <div className="reorder-actions">
-                    <IconButton
-                      label={`Subir a ${playerName || `Jugador ${index + 1}`}`}
+                  <div className="player-row-actions" role="group" aria-label={`Acciones para ${playerName || `Jugador ${index + 1}`}`}>
+                    <button
+                      className="row-action-button"
+                      type="button"
                       disabled={index === 0}
                       onClick={() => onMovePlayer(index, -1)}
                     >
-                      ↑
-                    </IconButton>
-                    <IconButton
-                      label={`Bajar a ${playerName || `Jugador ${index + 1}`}`}
+                      ↑ Subir
+                    </button>
+                    <button
+                      className="row-action-button"
+                      type="button"
                       disabled={index === setup.playerNames.length - 1}
                       onClick={() => onMovePlayer(index, 1)}
                     >
-                      ↓
-                    </IconButton>
-                    <IconButton
-                      label={`Quitar a ${playerName || `Jugador ${index + 1}`}`}
+                      ↓ Bajar
+                    </button>
+                    <button
+                      className="row-action-button row-action-button--danger"
+                      type="button"
                       disabled={setup.playerNames.length === 1}
                       onClick={() => onRemovePlayer(index)}
                     >
-                      ×
-                    </IconButton>
+                      Quitar
+                    </button>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
 
@@ -804,13 +877,6 @@ function SetupScreen({
               <SecondaryButton onClick={onAddPlayer} disabled={setup.playerCount >= 20}>
                 Agregar jugador
               </SecondaryButton>
-
-              <div className="setup-utility-row">
-                <SecondaryButton onClick={openDemoDialog}>
-                  {SCENE_COPY.setup.demo.label}
-                </SecondaryButton>
-                <p className="field-hint">{SCENE_COPY.setup.demo.hint}</p>
-              </div>
             </div>
           </section>
         </SceneFrame>
@@ -841,39 +907,56 @@ function SetupScreen({
             <PrimaryButton onClick={onStartGame} disabled={!validation.isValid}>
               Iniciar partida
             </PrimaryButton>
-            <SecondaryButton onClick={onBackSetup}>
-              Volver a jugadores
-            </SecondaryButton>
+            <GhostButton onClick={onBackSetup}>
+              ← Volver a jugadores
+            </GhostButton>
           </div>
         }
       >
-        <SetupSceneStatus status={roleSetupStatus} />
-
         <div className="panel-grid panel-grid--setup">
-          <section className="panel-card panel-card--muted">
+          <section className="panel-card panel-card--muted setup-order-summary">
             <div className="section-head">
               <div>
                 <span className="section-label">Grupo cargado</span>
                 <h3>Orden confirmado</h3>
               </div>
-              <MetaPill
-                label={`${setup.playerCount} ${setup.playerCount === 1 ? 'jugador' : 'jugadores'}`}
-                tone="ghost"
-              />
+              <MetaPill label="Circular" tone="ghost" />
             </div>
 
-            <p className="field-hint">El reparto sugerido parte de este orden circular.</p>
+            <p className="field-hint field-hint--setup">
+              El reparto sugerido parte de este orden circular.
+            </p>
 
-            <ol className="compact-list compact-list--ordered">
-              {setup.playerNames.map((playerName, index) => (
-                <li key={`setup-summary-${index + 1}`}>
-                  {playerName || `Jugador ${index + 1}`}
-                </li>
+            <div className="setup-order-preview" aria-label="Vista previa del orden">
+              {setup.playerNames.slice(0, 3).map((playerName, index) => (
+                <span className="setup-order-chip" key={`setup-order-preview-${index + 1}`}>
+                  {String(index + 1).padStart(2, '0')} {playerName || `Jugador ${index + 1}`}
+                </span>
               ))}
-            </ol>
+              {setup.playerCount > 3 ? (
+                <span className="setup-order-chip">+{setup.playerCount - 3} mas</span>
+              ) : null}
+            </div>
+
+            <GhostButton
+              className="setup-summary-toggle"
+              onClick={() => setIsOrderSummaryOpen((current) => !current)}
+            >
+              {isOrderSummaryOpen ? 'Ocultar orden' : 'Ver orden completo'}
+            </GhostButton>
+
+            {isOrderSummaryOpen ? (
+              <ol className="compact-list compact-list--ordered setup-summary-list">
+                {setup.playerNames.map((playerName, index) => (
+                  <li key={`setup-summary-${index + 1}`}>
+                    {playerName || `Jugador ${index + 1}`}
+                  </li>
+                ))}
+              </ol>
+            ) : null}
           </section>
 
-          <section className="panel-card panel-card--public">
+          <section className="panel-card panel-card--public setup-roles-card">
             <div className="section-head">
               <div>
                 <span className="section-label">Reparto</span>
@@ -910,10 +993,9 @@ function SetupScreen({
         </div>
 
         <div className="setup-utility-row setup-utility-row--inline">
-          <SecondaryButton onClick={openDemoDialog}>
+          <SecondaryButton className="button-secondary--compact" onClick={openDemoDialog}>
             {SCENE_COPY.setup.demo.label}
           </SecondaryButton>
-          <p className="field-hint">{SCENE_COPY.setup.demo.warning}</p>
         </div>
       </SceneFrame>
 
@@ -925,6 +1007,7 @@ function SetupScreen({
 }
 
 interface SetupSceneStatusProps {
+  meta?: ReactNode;
   status: {
     detail: string;
     label: string;
@@ -933,12 +1016,17 @@ interface SetupSceneStatusProps {
   };
 }
 
-function SetupSceneStatus({ status }: SetupSceneStatusProps) {
+function SetupSceneStatus({ meta, status }: SetupSceneStatusProps) {
   return (
     <section className={`setup-status setup-status--${status.tone}`}>
-      <span className="section-label">{status.label}</span>
-      <strong>{status.title}</strong>
-      <p className="field-hint">{status.detail}</p>
+      <div className="setup-status__head">
+        <div className="setup-status__copy">
+          <span className="section-label">{status.label}</span>
+          <strong>{status.title}</strong>
+        </div>
+        {meta ? <div className="setup-status__meta">{meta}</div> : null}
+      </div>
+      <p className="setup-status__detail">{status.detail}</p>
     </section>
   );
 }
@@ -950,7 +1038,7 @@ interface DemoSetupDialogProps {
 
 function DemoSetupDialog({ onClose, onConfirm }: DemoSetupDialogProps) {
   return (
-    <Dialog onClose={onClose}>
+    <Dialog>
       <div className="dialog-badge-row">
         <MetaPill label={SCENE_COPY.setup.demo.label} tone="ghost" />
         <MetaPill label={`${DEMO_CAST.length} jugadores`} tone="alert" />
@@ -975,7 +1063,7 @@ function DemoSetupDialog({ onClose, onConfirm }: DemoSetupDialogProps) {
 
       <div className="action-dock">
         <PrimaryButton onClick={onConfirm}>{SCENE_COPY.setup.demo.cta}</PrimaryButton>
-        <SecondaryButton onClick={onClose}>{SCENE_COPY.setup.demo.cancel}</SecondaryButton>
+        <GhostButton onClick={onClose}>{SCENE_COPY.setup.demo.cancel}</GhostButton>
       </div>
     </Dialog>
   );
@@ -1032,7 +1120,7 @@ function RoleRevealScreen({
       </section>
 
       {isOpen ? (
-        <Dialog onClose={() => setIsOpen(false)}>
+        <Dialog>
           <div className="dialog-badge-row">
             <RailBadge ariaLabel="Modo privado" label="Privado" tone="private" />
             <MetaPill label={SCENE_COPY.revealDialog.title} tone="alert" />
@@ -1100,6 +1188,10 @@ function NightScreen({
 
   const actor = getPlayerById(players, night.actorOrder[night.currentTurnIndex]);
   const allowedTargets = actor ? getAllowedTargets(actor, players) : [];
+  const priorMafiaVotesByTarget =
+    actor?.role === 'mafia'
+      ? getNightTargetSelectionCounts(night.actions, 'mafia')
+      : new Map<string, number>();
 
   if (night.step === 'intro') {
     return (
@@ -1188,17 +1280,43 @@ function NightScreen({
       </section>
 
       <div className="target-list" role="list">
-        {allowedTargets.map((target) => (
-          <button
-            key={target.id}
-            className={target.id === selectedTargetId ? 'target-card is-selected' : 'target-card'}
-            type="button"
-            onClick={() => setSelectedTargetId(target.id)}
-          >
-            <span>{target.name}</span>
-            {target.id === actor.id ? <small>Vos</small> : null}
-          </button>
-        ))}
+        {allowedTargets.map((target) => {
+          const priorMafiaVoteCount = priorMafiaVotesByTarget.get(target.id) ?? 0;
+          const showOwnTag = target.id === actor.id;
+          const showTargetMeta = priorMafiaVoteCount > 0 || showOwnTag;
+
+          return (
+            <button
+              key={target.id}
+              className={target.id === selectedTargetId ? 'target-card is-selected' : 'target-card'}
+              type="button"
+              onClick={() => setSelectedTargetId(target.id)}
+            >
+              <span className="target-card__identity">{target.name}</span>
+              {showTargetMeta ? (
+                <span className="target-card__meta">
+                  {priorMafiaVoteCount > 0 ? (
+                    <span
+                      className="target-card__vote-markers"
+                      aria-label={`${priorMafiaVoteCount} mafia${priorMafiaVoteCount === 1 ? ' previa ya eligio a este jugador' : 's previas ya eligieron a este jugador'}`}
+                    >
+                      {Array.from({ length: priorMafiaVoteCount }, (_, index) => (
+                        <span
+                          key={`${target.id}-mafia-vote-${index + 1}`}
+                          className="target-card__vote-marker"
+                          aria-hidden="true"
+                        >
+                          🔪
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
+                  {showOwnTag ? <span className="target-card__tag">Vos</span> : null}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
     </SceneFrame>
   );
@@ -1206,16 +1324,20 @@ function NightScreen({
 
 interface ResolutionScreenProps {
   roundRecord: RoundRecord;
-  onContinue: () => void;
+  onGoToExecution: () => void;
+  onSkipToNight: () => void;
 }
 
-function ResolutionScreen({ roundRecord, onContinue }: ResolutionScreenProps) {
+function ResolutionScreen({ roundRecord, onGoToExecution, onSkipToNight }: ResolutionScreenProps) {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setRevealed(true), 800);
     return () => window.clearTimeout(timeout);
   }, []);
+
+  const gatheringText = TOWN_GATHERING_TEXTS[roundRecord.gatheringFlavorIndex] ?? TOWN_GATHERING_TEXTS[0];
+  const deathIcon = roundRecord.nightDeathPlayerId ? '💀' : '🛡️';
 
   return (
     <SceneFrame
@@ -1224,18 +1346,25 @@ function ResolutionScreen({ roundRecord, onContinue }: ResolutionScreenProps) {
       mode="public"
       kicker={SCENE_COPY.resolution.kicker}
       title={SCENE_COPY.resolution.title}
-      subtitle={SCENE_COPY.resolution.subtitle}
       footer={
         <div className="action-dock">
-          <PrimaryButton onClick={onContinue} disabled={!revealed}>☀️ IR AL DÍA</PrimaryButton>
+          <PrimaryButton onClick={onGoToExecution} disabled={!revealed}>
+            ⚖️ EJECUTAR A ALGUIEN
+          </PrimaryButton>
+          <GhostButton className="resolution-skip-button" onClick={onSkipToNight} disabled={!revealed}>
+            🌙 PASAR A LA NOCHE SIN EJECUTAR A NADIE
+          </GhostButton>
         </div>
       }
     >
       <section className="result-banner" aria-live="polite">
-        <span className="section-label">Mensaje permitido</span>
-        <strong className={revealed ? 'result-text--revealed' : 'result-text--hidden'}>
-          {roundRecord.publicMessage}
+        <span className="section-label">Resultado de la noche</span>
+        <strong className={`result-text result-text--large ${revealed ? 'result-text--revealed' : 'result-text--hidden'}`}>
+          {deathIcon} {roundRecord.publicMessage}
         </strong>
+        {revealed && (
+          <p className="scene-subtitle result-gathering">{gatheringText}</p>
+        )}
       </section>
     </SceneFrame>
   );
@@ -1249,12 +1378,10 @@ interface DayScreenProps {
 }
 
 function DayScreen({ round, players, onExecute, onPass }: DayScreenProps) {
-  const [isChoosingExecution, setIsChoosingExecution] = useState(false);
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
   const livingPlayers = players.filter((player) => player.status === 'alive');
 
   useEffect(() => {
-    setIsChoosingExecution(false);
     setPendingExecutionId(null);
   }, [round]);
 
@@ -1268,39 +1395,31 @@ function DayScreen({ round, players, onExecute, onPass }: DayScreenProps) {
       title={SCENE_COPY.day.title}
       subtitle={SCENE_COPY.day.subtitle}
       meta={<MetaPill label={`Ronda ${round}`} tone="ghost" />}
+      footer={
+        <GhostButton onClick={onPass}>← Cancelar ejecución</GhostButton>
+      }
     >
-      {!isChoosingExecution ? (
-        <div className="action-dock action-dock--stacked">
-          <PrimaryButton onClick={() => setIsChoosingExecution(true)}>
-            ⚖️ EJECUTAR
-          </PrimaryButton>
-          <SecondaryButton onClick={onPass}>🌙 NOCHE</SecondaryButton>
-        </div>
-      ) : (
-        <div className="execution-picker">
-          <section className="panel-card panel-card--public">
-            <span className="section-label">Decision colectiva</span>
-            <h3>{SCENE_COPY.day.executeTitle}</h3>
-            <p className="field-hint">Solo se listan jugadores vivos.</p>
-          </section>
+      <div className="execution-picker">
+        <section className="panel-card panel-card--public">
+          <span className="section-label">Decisión colectiva</span>
+          <h3>{SCENE_COPY.day.executeTitle}</h3>
+          <p className="field-hint">Solo se listan jugadores vivos.</p>
+        </section>
 
-          <div className="target-list" role="list">
-            {livingPlayers.map((player) => (
-              <button
-                key={player.id}
-                className="target-card"
-                type="button"
-                onClick={() => setPendingExecutionId(player.id)}
-              >
-                <span>{player.name}</span>
-                <small>Vivo</small>
-              </button>
-            ))}
-          </div>
-
-          <SecondaryButton onClick={() => setIsChoosingExecution(false)}>Cancelar</SecondaryButton>
+        <div className="target-list" role="list">
+          {livingPlayers.map((player) => (
+            <button
+              key={player.id}
+              className="target-card"
+              type="button"
+              onClick={() => setPendingExecutionId(player.id)}
+            >
+              <span className="target-card__identity">{player.name}</span>
+              <span className="target-card__tag">Vivo</span>
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </SceneFrame>
 
     {pendingExecutionId ? (
@@ -1325,13 +1444,16 @@ interface ExecutionConfirmDialogProps {
 
 function ExecutionConfirmDialog({ playerName, onConfirm, onCancel }: ExecutionConfirmDialogProps) {
   return (
-    <Dialog onClose={onCancel}>
+    <Dialog>
       <div className="dialog-badge-row">
         <MetaPill label="Dia" tone="ghost" />
-        <MetaPill label="Confirmacion" tone="alert" />
+        <MetaPill label="🪓 Confirmacion" tone="alert" />
       </div>
 
-      <div className="dialog-heading">
+      <div className="dialog-heading dialog-heading--execution">
+        <div className="execution-confirm-mark" aria-hidden="true">
+          🪓
+        </div>
         <p className="section-label">Decision colectiva</p>
         <h3>Ejecutar a {playerName}</h3>
         <p className="support-copy">Esta accion no se puede deshacer. El grupo confirma la decision.</p>
@@ -1339,7 +1461,7 @@ function ExecutionConfirmDialog({ playerName, onConfirm, onCancel }: ExecutionCo
 
       <div className="action-dock">
         <PrimaryButton onClick={onConfirm}>⚖️ CONFIRMAR EJECUCIÓN</PrimaryButton>
-        <SecondaryButton onClick={onCancel}>Cancelar</SecondaryButton>
+        <GhostButton onClick={onCancel}>Cancelar</GhostButton>
       </div>
     </Dialog>
   );
@@ -1351,10 +1473,17 @@ interface GameOverScreenProps {
 }
 
 function GameOverScreen({ result, onReset }: GameOverScreenProps) {
+  const totalRounds = result.rounds.length;
+  const nightDeaths = result.rounds.filter((r) => r.nightDeathPlayerId !== null).length;
+  const dayExecutions = result.rounds.filter((r) => r.dayExecutionPlayerId !== null).length;
+  const survivors = result.finalPlayers.filter((p) => p.status === 'alive').length;
+  const winnerEmoji = result.winner === 'citizens' ? '🏆' : '🔪';
+
   return (
     <SceneFrame
       phase="game-over"
       mode="public"
+      winner={result.winner}
       kicker={SCENE_COPY.gameOver.kicker}
       title={WINNER_LABELS[result.winner]}
       subtitle={SCENE_COPY.gameOver.subtitle}
@@ -1364,6 +1493,27 @@ function GameOverScreen({ result, onReset }: GameOverScreenProps) {
         </div>
       }
     >
+      <div className="game-over-winner-badge" aria-hidden="true">{winnerEmoji}</div>
+
+      <div className="game-stats">
+        <div className="game-stat">
+          <span className="game-stat__value">{totalRounds}</span>
+          <span className="game-stat__label">Rondas</span>
+        </div>
+        <div className="game-stat">
+          <span className="game-stat__value">{nightDeaths}</span>
+          <span className="game-stat__label">Muertos</span>
+        </div>
+        <div className="game-stat">
+          <span className="game-stat__value">{dayExecutions}</span>
+          <span className="game-stat__label">Ejecutados</span>
+        </div>
+        <div className="game-stat">
+          <span className="game-stat__value">{survivors}</span>
+          <span className="game-stat__label">Vivos</span>
+        </div>
+      </div>
+
       <div className="panel-grid">
         <section className="panel-card">
           <div className="section-head">
@@ -1470,6 +1620,7 @@ interface SceneFrameProps {
   phase: RailPhase;
   subtitle?: string;
   title: string;
+  winner?: 'citizens' | 'mafia';
 }
 
 function SceneFrame({
@@ -1483,12 +1634,14 @@ function SceneFrame({
   phase,
   subtitle,
   title,
+  winner,
 }: SceneFrameProps) {
   return (
     <section
       className={`scene ${fit ? 'scene--fit' : ''} ${className}`.trim()}
       data-phase={phase}
       data-screen-mode={mode}
+      data-winner={winner}
     >
       <div className="scene-head">
         <div className="scene-head-row">
@@ -1577,32 +1730,39 @@ function StatusPill({ status }: StatusPillProps) {
 
 interface DialogProps {
   children: ReactNode;
-  onClose: () => void;
 }
 
-function Dialog({ children, onClose }: DialogProps) {
+function Dialog({ children }: DialogProps) {
   return (
     <div className="dialog-backdrop" role="presentation">
       <div className="dialog-panel" role="dialog" aria-modal="true">
         {children}
-        <button className="dialog-close" type="button" onClick={onClose} aria-label="Cerrar">
-          ×
-        </button>
       </div>
     </div>
   );
 }
 
 interface InspectionOverlayProps {
+  durationMs: number;
   message: string;
 }
 
-function InspectionOverlay({ message }: InspectionOverlayProps) {
+function InspectionOverlay({ durationMs, message }: InspectionOverlayProps) {
   return (
     <div className="inspection-overlay" role="status" aria-live="assertive">
       <div className="inspection-card">
         <span className="section-label">Privado</span>
         <strong>{message}</strong>
+        <div className="inspection-card__timer">
+          <span className="inspection-card__timer-label">Cierre automatico</span>
+          <div
+            aria-hidden="true"
+            className="inspection-card__timer-track"
+            style={{ ['--inspection-duration' as string]: `${durationMs}ms` }}
+          >
+            <div className="inspection-card__timer-bar" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1623,6 +1783,14 @@ function PrimaryButton({ children, className = '', ...props }: ButtonProps) {
 function SecondaryButton({ children, className = '', ...props }: ButtonProps) {
   return (
     <button className={`button button-secondary ${className}`.trim()} type="button" {...props}>
+      {children}
+    </button>
+  );
+}
+
+function GhostButton({ children, className = '', ...props }: ButtonProps) {
+  return (
+    <button className={`button-ghost ${className}`.trim()} type="button" {...props}>
       {children}
     </button>
   );
@@ -1672,32 +1840,6 @@ function getPlayerSetupStatus(setup: AppState['setup'], validation: SetupValidat
     label: 'Mesa lista',
     title: 'Ya podes pasar al reparto',
     detail: 'El orden actual gobierna revelacion, pases de telefono y turnos nocturnos.',
-    tone: 'safe' as const,
-  };
-}
-
-function getRoleSetupStatus(
-  setup: AppState['setup'],
-  validation: SetupValidation,
-  totalRoles: number,
-  suggestedCounts: RoleCounts,
-) {
-  if (validation.roleErrors.length > 0) {
-    return {
-      label: 'Reparto invalido',
-      title:
-        totalRoles !== setup.playerCount
-          ? `La suma da ${totalRoles} y la mesa pide ${setup.playerCount}`
-          : 'Hace falta ajustar los roles',
-      detail: validation.roleErrors[0],
-      tone: 'alert' as const,
-    };
-  }
-
-  return {
-    label: 'Reparto listo',
-    title: 'Todo cierra con la mesa cargada',
-    detail: `Sugerido para ${setup.playerCount}: ${formatRoleCounts(suggestedCounts)}.`,
     tone: 'safe' as const,
   };
 }
