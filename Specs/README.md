@@ -8,6 +8,7 @@ El repositorio se desarrolla siempre de forma `spec driven`: primero se define o
 - `Specs/` es la fuente de verdad funcional del proyecto.
 - `product-scope.md` es transversal y no versionado.
 - Cada version funcional vive en su propia carpeta `Specs/<version>/`.
+- La version activa en iteracion es [0.0.2](0.0.2/README.md).
 - La version cerrada actual es [0.0.1](0.0.1/README.md).
 - La proxima iteracion funcional debe abrir una nueva carpeta de version dentro de `Specs/`.
 - Cada version debe declarar su estado: `wip` o `closed`.
@@ -26,7 +27,7 @@ Specs/
     game-rules.md
     use-cases.md
     visual-guide.md
-  <future-version>/
+  0.0.2/
     README.md
     mvp.md
     game-rules.md
@@ -38,12 +39,18 @@ Specs/
 ## Orden de lectura
 
 1. [product-scope.md](product-scope.md)
-2. [0.0.1/README.md](0.0.1/README.md)
-3. [0.0.1/mvp.md](0.0.1/mvp.md)
-4. [0.0.1/game-rules.md](0.0.1/game-rules.md)
-5. [0.0.1/use-cases.md](0.0.1/use-cases.md)
-6. [0.0.1/ux-look-and-feel.md](0.0.1/ux-look-and-feel.md)
-7. [0.0.1/visual-guide.md](0.0.1/visual-guide.md)
+2. [0.0.2/README.md](0.0.2/README.md)
+3. [0.0.2/mvp.md](0.0.2/mvp.md)
+4. [0.0.2/game-rules.md](0.0.2/game-rules.md)
+5. [0.0.2/use-cases.md](0.0.2/use-cases.md)
+6. [0.0.2/changes-from-previous.md](0.0.2/changes-from-previous.md)
+7. [0.0.2/visual-guide.md](0.0.2/visual-guide.md)
+8. [0.0.1/README.md](0.0.1/README.md)
+9. [0.0.1/mvp.md](0.0.1/mvp.md)
+10. [0.0.1/game-rules.md](0.0.1/game-rules.md)
+11. [0.0.1/use-cases.md](0.0.1/use-cases.md)
+12. [0.0.1/ux-look-and-feel.md](0.0.1/ux-look-and-feel.md)
+13. [0.0.1/visual-guide.md](0.0.1/visual-guide.md)
 
 ## Regla de cambio
 

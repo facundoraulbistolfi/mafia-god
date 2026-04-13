@@ -70,12 +70,15 @@ test('plays a deterministic mobile round to game over', async ({ page }) => {
   await page.getByRole('button', { name: 'Diego' }).click();
   await page.getByRole('button', { name: /^CONFIRMAR / }).click();
 
-  await expect(page.getByRole('heading', { name: 'Resultado de la ronda' })).toBeVisible();
-  await expect(page.getByLabel('Modo actual: 🔓 Publico')).toBeVisible();
-  await expect(page.getByText('Murio Diego')).toBeVisible();
+  // Resolution screen is now "SE HACE DE DÍA" / "Amanecer"
+  await expect(page.getByRole('heading', { name: 'Amanecer' })).toBeVisible();
+  await expect(page.getByLabel('Modo actual: 👁 Publico')).toBeVisible();
+  // Death message now includes narrative flavor text
+  await expect(page.getByText(/Diego/)).toBeVisible();
 
-  await page.getByRole('button', { name: '☀️ IR AL DÍA' }).click();
-  await page.getByRole('button', { name: '⚖️ EJECUTAR' }).click();
+  // Two new action buttons on the resolution screen
+  await page.getByRole('button', { name: '⚖️ EJECUTAR A ALGUIEN' }).click();
+  // Day screen now starts directly with the execution picker
   await page.getByRole('button', { name: 'Bruno' }).click();
   await page.getByRole('button', { name: '⚖️ CONFIRMAR EJECUCIÓN' }).click();
 

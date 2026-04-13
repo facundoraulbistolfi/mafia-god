@@ -6,10 +6,12 @@ import {
   createNightAction,
   evaluateWinner,
   getAllowedTargets,
+  getNightTargetSelectionCounts,
   resolveNightRound,
   suggestRoleCounts,
   validateSetup,
 } from './game';
+import { DEATH_FLAVOR_TEXTS, NO_DEATH_FLAVOR_TEXTS } from './labels';
 import { SequenceRng } from './rng';
 import type { NightAction, Player, RoundRecord, SetupState } from './types';
 
@@ -34,8 +36,10 @@ function createRoundRecord(): RoundRecord {
     citizenPrayerTriggered: false,
     citizenPrayerSaved: null,
     nightDeathPlayerId: 'player-4',
-    publicMessage: 'Murio Dante',
+    publicMessage: 'Dante aparecio con 27 punaladas en la espalda y una nota de suicidio.',
     dayExecutionPlayerId: null,
+    deathFlavorIndex: 0,
+    gatheringFlavorIndex: 0,
   };
 }
 
@@ -107,6 +111,28 @@ describe('game domain', () => {
     expect(createNightAction(police, mafia, 1).privateResult).toBe('is-mafia');
   });
 
+  it('keeps at least ten humorous public texts for deaths and peaceful nights', () => {
+    expect(DEATH_FLAVOR_TEXTS.length).toBeGreaterThanOrEqual(10);
+    expect(NO_DEATH_FLAVOR_TEXTS.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('counts prior selections by target for a specific night role', () => {
+    const counts = getNightTargetSelectionCounts(
+      [
+        { actorId: 'player-1', role: 'mafia', targetId: 'player-4', round: 1 },
+        { actorId: 'player-6', role: 'mafia', targetId: 'player-4', round: 1 },
+        { actorId: 'player-2', role: 'doctor', targetId: 'player-4', round: 1 },
+        { actorId: 'player-7', role: 'mafia', targetId: 'player-5', round: 1 },
+      ],
+      'mafia',
+    );
+
+    expect(Array.from(counts.entries())).toEqual([
+      ['player-4', 2],
+      ['player-5', 1],
+    ]);
+  });
+
   it('resolves the mafia target with weighted randomness', () => {
     const players = createPlayers();
     const actions: NightAction[] = [
@@ -114,12 +140,16 @@ describe('game domain', () => {
       { actorId: 'player-1b', role: 'mafia', targetId: 'player-4', round: 1 },
       { actorId: 'player-6', role: 'mafia', targetId: 'player-5', round: 1 },
     ];
-    const rng = new SequenceRng([0.2]);
+    // RNG: [0] weighted target (player-4), [1] deathFlavorIndex, [2] gatheringFlavorIndex
+    const rng = new SequenceRng([0.2, 0.0, 0.0]);
 
     const result = resolveNightRound(players, actions, 1, rng);
 
     expect(result.roundRecord.mafiaTargetId).toBe('player-4');
-    expect(result.roundRecord.publicMessage).toBe('Murio Dante');
+    expect(result.roundRecord.nightDeathPlayerId).toBe('player-4');
+    expect(result.roundRecord.publicMessage).toBe(
+      'Dante aparecio con 27 punaladas en la espalda y una nota de suicidio.',
+    );
   });
 
   it('gives the doctor full priority over other night effects', () => {
@@ -131,11 +161,14 @@ describe('game domain', () => {
       { actorId: 'player-5', role: 'citizen', targetId: 'player-4', round: 1 },
     ];
 
-    const result = resolveNightRound(players, actions, 1, new SequenceRng([0.99]));
+    // RNG: [0] weighted target, [1] deathFlavorIndex (no-death), [2] gatheringFlavorIndex
+    const result = resolveNightRound(players, actions, 1, new SequenceRng([0.99, 0.0, 0.0]));
 
     expect(result.roundRecord.doctorSaved).toBe(true);
     expect(result.roundRecord.nightDeathPlayerId).toBeNull();
-    expect(result.roundRecord.publicMessage).toBe('Nadie murio');
+    expect(result.roundRecord.publicMessage).toBe(
+      'Nadie cayo. La mafia tuvo peor punteria que un stormtrooper.',
+    );
   });
 
   it('activates the citizen prayer threshold and can save the target on 50/50', () => {

@@ -58,9 +58,11 @@ export type GameAction =
   | { type: 'night/submit-action'; targetId: string; rng: Rng }
   | { type: 'night/advance-handoff' }
   | { type: 'resolution/continue' }
+  | { type: 'resolution/skip-to-night' }
   | { type: 'day/execute'; playerId: string }
   | { type: 'day/pass' }
-  | { type: 'game/reset' };
+  | { type: 'setup/clear-all-players' }
+  | { type: 'game/reset'; savedPlayers?: string[] };
 
 export function createInitialAppState(): AppState {
   return {
@@ -440,8 +442,39 @@ export function gameReducer(state: AppState, action: GameAction): AppState {
       };
     }
 
-    case 'game/reset':
-      return createInitialAppState();
+    case 'resolution/skip-to-night': {
+      if (state.phase !== 'round-resolution') return state;
+      const nextRound = (state.rounds[state.rounds.length - 1]?.round ?? 0) + 1;
+      return {
+        ...state,
+        phase: 'night',
+        night: createNightState(state.players, nextRound),
+      };
+    }
+
+    case 'setup/clear-all-players': {
+      return {
+        ...state,
+        setup: createInitialSetup(),
+      };
+    }
+
+    case 'game/reset': {
+      const base = createInitialAppState();
+      if (action.savedPlayers?.length) {
+        const playerNames = action.savedPlayers;
+        const playerCount = playerNames.length;
+        return {
+          ...base,
+          setup: {
+            playerCount,
+            playerNames,
+            roleCounts: suggestRoleCounts(playerCount),
+          },
+        };
+      }
+      return base;
+    }
 
     default:
       return state;

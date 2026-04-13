@@ -1,4 +1,4 @@
-import { PRIVATE_RESULT_LABELS } from './labels';
+import { DEATH_FLAVOR_TEXTS, NO_DEATH_FLAVOR_TEXTS, PRIVATE_RESULT_LABELS, TOWN_GATHERING_TEXTS } from './labels';
 import type {
   GameResult,
   NightAction,
@@ -215,9 +215,15 @@ export function resolveNightRound(
     !(citizenPrayerTriggered && citizenPrayerSaved === true);
   const nightDeathPlayerId = shouldDie ? mafiaTargetId : null;
   const updatedPlayers = nightDeathPlayerId ? eliminatePlayer(players, nightDeathPlayerId) : players;
+
+  const deathFlavorIndex = Math.floor(
+    rng.next() * (nightDeathPlayerId ? DEATH_FLAVOR_TEXTS.length : NO_DEATH_FLAVOR_TEXTS.length),
+  );
+  const gatheringFlavorIndex = Math.floor(rng.next() * TOWN_GATHERING_TEXTS.length);
+
   const publicMessage = nightDeathPlayerId
-    ? `Murio ${getPlayerName(updatedPlayers, nightDeathPlayerId)}`
-    : 'Nadie murio';
+    ? `${getPlayerName(updatedPlayers, nightDeathPlayerId)} ${DEATH_FLAVOR_TEXTS[deathFlavorIndex]}`
+    : NO_DEATH_FLAVOR_TEXTS[deathFlavorIndex];
 
   const roundRecord: RoundRecord = {
     round,
@@ -231,6 +237,8 @@ export function resolveNightRound(
     nightDeathPlayerId,
     publicMessage,
     dayExecutionPlayerId: null,
+    deathFlavorIndex,
+    gatheringFlavorIndex,
   };
 
   return {
@@ -310,6 +318,20 @@ export function getNightActionSummary(action: NightAction, players: Player[]) {
   }
 
   return base;
+}
+
+export function getNightTargetSelectionCounts(actions: NightAction[], role: Role) {
+  const counts = new Map<string, number>();
+
+  actions.forEach((action) => {
+    if (action.role !== role) {
+      return;
+    }
+
+    counts.set(action.targetId, (counts.get(action.targetId) ?? 0) + 1);
+  });
+
+  return counts;
 }
 
 function createRolePool(roleCounts: RoleCounts) {
